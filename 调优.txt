@@ -1,0 +1,65 @@
+
+#######################################################################################################################################################################
+#######################################################################################################################################################################
+#############################################################             #############################################################################################
+#############################################################日报表sql语句#############################################################################################
+#############################################################             #############################################################################################
+#######################################################################################################################################################################
+#######################################################################################################################################################################
+#######################################################################################################################################################################
+##根据日期查询当天的消费金额3.11
+select SUM(totalMoney) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2017-3-21');
+##根据当前日期查询昨天的数据
+select SUM(totalMoney) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and (TO_DAYS('2016-03-16') - TO_DAYS(createTime) = 1)
+###查询去年今天的数据
+select SUM(totalMoney) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and  TO_DAYS(createTime)=(TO_DAYS(date_sub('2016-10-28',interval 1 year)));
+###查询消费单数
+select COUNT(serialId) from ec_shop_consume_serial  where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28');
+###平均每单消费价格
+select  avg(totalMoney)from ec_shop_consume_serial  where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28');
+###查询消费人次
+select SUM(peopleNumber) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28');
+###人均消费金额
+select SUM(totalMoney)/SUM(peopleNumber) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28');
+###网上支付单数和金额查询
+SELECT COUNT(serialId) ,SUM(totalMoney)  from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62  and orderPayMoney<>0  and TO_DAYS(createTime)=TO_DAYS('2016-10-28');
+###线下支付单数和金额查询
+SELECT COUNT(serialId) ,SUM(totalMoney)  from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62  and orderPayMoney=0  and TO_DAYS(createTime)=TO_DAYS('2016-10-28');
+##网上预订单数和金额
+SELECT COUNT(ec_shop_consume_serial.serialId),SUM(totalMoney) 	from ec_shop_consume_serial LEFT join ec_order_cy on ec_order_cy.serialId=ec_shop_consume_serial.serialId 
+where isDelete=0 and payState=1 and ec_shop_consume_serial.payFlowNo is null and ec_shop_consume_serial.shopId=62 and orderType<>4 and TO_DAYS(ec_shop_consume_serial.createTime)=TO_DAYS('2016-10-28') ;
+##到店开台订单和金额
+SELECT COUNT(ec_shop_consume_serial.serialId),SUM(totalMoney) 	from ec_shop_consume_serial LEFT join ec_order_cy on ec_order_cy.serialId=ec_shop_consume_serial.serialId 
+where isDelete=0 and payState=1 and ec_shop_consume_serial.payFlowNo is null and ec_shop_consume_serial.shopId=62 and orderType=4 and TO_DAYS(ec_shop_consume_serial.createTime)=TO_DAYS('2016-10-28') ;
+###查询当前餐厅菜品销售数量排名
+select COUNT(eodc.quantity) as totalDishNumber, (COUNT(eodc.quantity)*eodc.price) as totalprice,dishName from ec_order_detail_cy  as eodc left join ec_order_cy as eoc on eoc.orderId=eodc.orderId left join ec_shop_consume_serial
+as escs on escs.serialId=eoc.serialId where escs.isDelete=0 and escs.payState=1 and escs.payFlowNo is null and escs.shopId=62 and TO_DAYS(escs.createTime)=TO_DAYS('2016-10-28')
+GROUP BY dishId ORDER BY totalDishNumber desc LIMIT 5;
+###查询当前餐厅菜品销售金额排名
+select COUNT(eodc.quantity) as totalDishNumber, (COUNT(eodc.quantity)*eodc.price) as totalprice,dishName from ec_order_detail_cy  as eodc left join ec_order_cy as eoc on eoc.orderId=eodc.orderId left join ec_shop_consume_serial
+as escs on escs.serialId=eoc.serialId where escs.isDelete=0 and escs.payState=1 and escs.payFlowNo is null and escs.shopId=62 and TO_DAYS(escs.createTime)=TO_DAYS('2016-10-28')
+GROUP BY dishId ORDER BY totalprice desc LIMIT 5;
+###查询当天每小时的销售销售金额
+select SUM(totalMoney),DATE_FORMAT(createTime,'%H') hours from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and 
+TO_DAYS(createTime)=TO_DAYS('2016-10-28') GROUP BY  hours;
+#############################################################汇总sql#################################################
+select 
+IFNULL((select SUM(totalMoney) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28')),"0.00") as totalSaleAmount,
+IFNULL((select SUM(totalMoney) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and (TO_DAYS('2016-10-28') - TO_DAYS(createTime) = 1)),"0.00") as lastCycleSaleAmount,
+IFNULL((select SUM(totalMoney) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and  TO_DAYS(createTime)=(TO_DAYS(date_sub('2016-10-28',interval 1 year)))),"0.00") as lastYearTadaySaleAmount,
+(select COUNT(serialId) from ec_shop_consume_serial  where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28')) as tadayOrderNumber,
+IFNULL((select  avg(totalMoney)from ec_shop_consume_serial  where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28')),"0.00") as averageOrderAmount,
+(select SUM(peopleNumber) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28')) as totalConsumptionPassengers,
+IFNULL((select SUM(totalMoney)/SUM(peopleNumber) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and TO_DAYS(createTime)=TO_DAYS('2016-10-28')),"0.00") as perCapitaConsumption,
+(SELECT COUNT(serialId) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62  and orderPayMoney<>0  and TO_DAYS(createTime)=TO_DAYS('2016-10-28'))as totalOnlinOrderNumber,
+IFNULL((SELECT SUM(totalMoney)  from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62  and orderPayMoney<>0  and TO_DAYS(createTime)=TO_DAYS('2016-10-28')),'0.00')as totalOnlinOrderAmount,
+(SELECT COUNT(serialId) from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62  and orderPayMoney=0  and TO_DAYS(createTime)=TO_DAYS('2016-10-28')) as totalLineOrderNumber,
+IFNULL((SELECT SUM(totalMoney)  from ec_shop_consume_serial where isDelete=0 and payState=1 and payFlowNo is null and shopId=62 and orderPayMoney=0 and TO_DAYS(createTime)=TO_DAYS('2016-10-28')),'0.00')as totalLineOrderAmount,
+(SELECT COUNT(ec_shop_consume_serial.serialId)	from ec_shop_consume_serial LEFT join ec_order_cy on ec_order_cy.serialId=ec_shop_consume_serial.serialId 
+where isDelete=0 and payState=1 and ec_shop_consume_serial.payFlowNo is null and ec_shop_consume_serial.shopId=62 and orderType<>4 and TO_DAYS(ec_shop_consume_serial.createTime)=TO_DAYS('2016-10-28'))as bookOrderNumber,
+IFNULL((SELECT SUM(totalMoney) 	from ec_shop_consume_serial LEFT join ec_order_cy on ec_order_cy.serialId=ec_shop_consume_serial.serialId 
+where isDelete=0 and payState=1 and ec_shop_consume_serial.payFlowNo is null and ec_shop_consume_serial.shopId=62 and orderType<>4 and TO_DAYS(ec_shop_consume_serial.createTime)=TO_DAYS('2016-10-28')),'0.00') as bookOrderAmount,
+(SELECT COUNT(ec_shop_consume_serial.serialId) 	from ec_shop_consume_serial LEFT join ec_order_cy on ec_order_cy.serialId=ec_shop_consume_serial.serialId 
+where isDelete=0 and payState=1 and ec_shop_consume_serial.payFlowNo is null and ec_shop_consume_serial.shopId=62 and orderType=4 and TO_DAYS(ec_shop_consume_serial.createTime)=TO_DAYS('2016-10-28'))as openTableOrderNumber,
+IFNULL((SELECT SUM(totalMoney) 	from ec_shop_consume_serial LEFT join ec_order_cy on ec_order_cy.serialId=ec_shop_consume_serial.serialId 
+where isDelete=0 and payState=1 and ec_shop_consume_serial.payFlowNo is null and ec_shop_consume_serial.shopId=62 and orderType=4 and TO_DAYS(ec_shop_consume_serial.createTime)=TO_DAYS('2016-10-28')),'0.00') as openTableOrderAmount
